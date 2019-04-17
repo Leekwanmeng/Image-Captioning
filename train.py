@@ -51,7 +51,6 @@ def main():
     device = torch.device("cuda" if use_cuda else "cpu")
 
     transform = transforms.Compose([ 
-        transforms.RandomCrop(args.crop_size),
         transforms.RandomHorizontalFlip(), 
         transforms.ToTensor(), 
         transforms.Normalize((0.485, 0.456, 0.406), 
