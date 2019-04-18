@@ -12,8 +12,51 @@ from torchvision import transforms
 from utils import AverageMeter, accuracy
 import time
 
-#TODO
-def train(args, train_loader, device, encoder, decoder, criterion, encoder_optimizer, decoder_optimizer, epoch):
+# def train(args, train_loader, device, encoder, decoder, criterion, encoder_optimizer, decoder_optimizer, epoch):
+#     encoder.train()
+#     decoder.train()
+
+#     loss_meter = AverageMeter('Train loss', ':.4f')
+#     epoch_start = time.time()
+#     last_time = epoch_start
+
+#     for batch_idx, (img, target, lengths) in enumerate(train_loader):
+#         img = img.to(device)
+#         target = target.to(device)
+
+#         # target = pack_padded_sequence(caption, length, batch_first=True)[0]
+
+#         encoder_out = encoder(img)
+        
+#         output, caps_sorted, decode_lengths, alphas, sort_ind = decoder(encoder_out, target, lengths)
+#         target = caps_sorted[:, 1:]
+
+#         output, _ = pack_padded_sequence(output, decode_lengths, batch_first=True)
+#         target, _ = pack_padded_sequence(target, decode_lengths, batch_first=True)
+
+#         loss = criterion(output, target)
+
+#         # doubly stochastic attention regularization
+#         loss += 1. * ((1. - alphas.sum(dim=1)) ** 2).mean()
+
+#         loss_meter.update(loss)
+
+#         decoder.zero_grad()
+#         encoder.zero_grad()
+#         loss.backward()
+#         encoder_optimizer.step()
+#         decoder_optimizer.step()
+#         if batch_idx % args.log_interval == 0:
+#             time_now = time.time()
+#             time_taken = time_now - last_time
+#             last_time = time_now
+#             print('Train Epoch: {} [{}/{} ({:.0f}%)]\t Time taken: {:.0f}s\tLoss: {:.6f}'.format(
+#             epoch, batch_idx * args.batch_size, len(train_loader.dataset),
+#             100. * batch_idx / len(train_loader), time_taken, loss.item()))
+#     print('\nAverage train loss: {:.6f}\t Time taken: {:.0f}s'.format(loss_meter.avg, epoch_start - time.time()))
+#     return loss_meter.avg
+
+def train(args, train_loader, device, encoder, decoder, criterion, optimizer, epoch):
     encoder.train()
     decoder.train()
 
@@ -45,8 +88,7 @@ def train(args, train_loader, device, encoder, decoder, criterion, encoder_optim
         decoder.zero_grad()
         encoder.zero_grad()
         loss.backward()
-        encoder_optimizer.step()
-        decoder_optimizer.step()
+        optimizer.step()
         if batch_idx % args.log_interval == 0:
             time_now = time.time()
             time_taken = time_now - last_time
@@ -57,14 +99,13 @@ def train(args, train_loader, device, encoder, decoder, criterion, encoder_optim
     print('\nAverage train loss: {:.6f}\t Time taken: {:.0f}s'.format(loss_meter.avg, epoch_start - time.time()))
     return loss_meter.avg
 
-#TODO
 def validate(args, val_loader, device, encoder, decoder, criterion):
     encoder.eval()
     decoder.eval()
 
     epoch_start = time.time()
-    loss_meter = AverageMeter()
-    top5acc = AverageMeter()
+    loss_meter = AverageMeter('Train loss', ':.4f')
+    top5acc = AverageMeter('Top 5 Accuracy', ':.4f')
     print("Evaluating model...")
     start_epoch = time.time()
     with torch.no_grad():
@@ -102,14 +143,14 @@ def main():
                         help='number of epochs to train (default: 15)')
     parser.add_argument('--encoder-lr', type=float, default=0.001, metavar='LR',
                         help='encoder learning rate (default: 0.01)')
-    parser.add_argument('--decoder-lr', type=float, default=0.01, metavar='LR',
-                        help='decoder learning rate (default: 0.01)')
+    parser.add_argument('--decoder-lr', type=float, default=0.004, metavar='LR',
+                        help='decoder learning rate (default: 0.001)')
     parser.add_argument('--num-workers', type=int, default=2,
                         help='Number of workers for dataloader')
     parser.add_argument('--crop-size', type=int, default=224,
                         help='size for randomly cropping images')
 
-    parser.add_argument('--embed-dim', type=int, default=64, metavar='EMB',
+    parser.add_argument('--embed-dim', type=int, default=256, metavar='EMB',
                         help='embbed dim (default: 32)')
     parser.add_argument('--hidden-dim', type=int, default=512, metavar='HD',
                         help='hidden dim (default: 512)')
@@ -162,18 +203,32 @@ def main():
     decoder = DecoderWithAttention(args.attention_dim, args.embed_dim, args.hidden_dim, len(vocab)).to(device)
 
     loss_fn = nn.CrossEntropyLoss()
-    encoder_optim = torch.optim.Adam(params=[p for p in encoder.parameters() if p.requires_grad], lr=args.encoder_lr)
-    decoder_optim = torch.optim.Adam(params=[p for p in decoder.parameters() if p.requires_grad], lr=args.decoder_lr)
+    # encoder_optim = torch.optim.Adam(params=[p for p in encoder.parameters() if p.requires_grad], lr=args.encoder_lr)
+    # decoder_optim = torch.optim.Adam(params=[p for p in decoder.parameters() if p.requires_grad], lr=args.decoder_lr)
+
+    optimizer = torch.optim.Adam(params=[p for p in decoder.parameters() if p.requires_grad] + [p for p in encoder.parameters() if p.requires_grad], lr=args.decoder_lr)
+
+    # train_loader.dataset.ids = train_loader.dataset.ids[:100]
+    # val_loader.dataset.ids = val_loader.dataset.ids[:100]
 
     for epoch in range(1, (args.epochs + 1)):
+        # train_loss = train(args = args,
+        #         train_loader=train_loader,
+        #         device = device,
+        #         encoder=encoder,
+        #         decoder=decoder,
+        #         criterion=loss_fn,
+        #         encoder_optimizer=encoder_optim,
+        #         decoder_optimizer=decoder_optim,
+        #         epoch=epoch)
+
         train_loss = train(args = args,
                 train_loader=train_loader,
                 device = device,
                 encoder=encoder,
                 decoder=decoder,
                 criterion=loss_fn,
-                encoder_optimizer=encoder_optim,
-                decoder_optimizer=decoder_optim,
+                optimizer=optimizer,
                 epoch=epoch)
 
         val_loss, val_score = validate(args=args,
@@ -191,7 +246,9 @@ def main():
             "encoder": encoder,
             "decoder": decoder
         }
+        
         torch.save(state, filename)
+        print("saved model at {}".format(filename))
 
 if __name__ == "__main__":
     main()

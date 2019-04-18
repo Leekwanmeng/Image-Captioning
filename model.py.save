@@ -86,6 +86,7 @@ class Encoder(nn.Module):
         out = self.resnet(images)  # (batch_size, 2048, image_size/32, image_size/32)
         out = self.adaptive_pool(out)  # (batch_size, 2048, enc_image_size, enc_image_size)
         out = self.conv1x1(out)  # (batch_size, 512, enc_image_size, enc_image_size)
+
         out = out.permute(0, 2, 3, 1)  # (batch_size, enc_image_size, enc_image_size, 512)
         return out
 
