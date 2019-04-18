@@ -13,7 +13,7 @@ from torchvision import transforms
 
 
 # Device configuration
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:4' if torch.cuda.is_available() else 'cpu')
 
 def main(args):
     # Create model directory
