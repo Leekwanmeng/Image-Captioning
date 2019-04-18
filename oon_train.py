@@ -19,7 +19,7 @@ def train(args, train_loader, device, encoder, decoder, criterion, encoder_optim
     loss_meter = AverageMeter('Train loss', ':.4f')
     top5acc = AverageMeter('Top 5 Accuracy', ':.4f')
 
-    for batch_idx, (img, target) in enumerate(train_loader):
+    for batch_idx, (img, target, lengths) in enumerate(train_loader):
         img = img.to(device)
         target = target.to(device)
         # target = pack_padded_sequence(caption, length, batch_first=True)[0]
@@ -27,9 +27,11 @@ def train(args, train_loader, device, encoder, decoder, criterion, encoder_optim
         encoder_out = encoder(img)
         
         #TODO
-        output, caps_sorted, decode_lengths, alphas, sort_ind = decoder(features, captions, lengths)
-        targets = caps_sorted[:, 1:]
+        output, caps_sorted, decode_lengths, alphas, sort_ind = decoder(encoder_out, target, lengths)
+        target = caps_sorted[:, 1:]
 
+        output, _ = pack_padded_sequence(outputs, decode_lengths, batch_first=True)
+        target, _ = pack_padded_sequence(targets, decode_lengths, batch_first=True)
 
         loss = criterion(output, target)
 
@@ -92,7 +94,7 @@ def main():
     args = parser.parse_args()
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     torch.manual_seed(args.seed)
-    device = torch.device("cuda:4" if use_cuda else "cpu")
+    device = torch.device("cuda:1" if use_cuda else "cpu")
 
     transform = transforms.Compose([ 
         transforms.RandomHorizontalFlip(), 
