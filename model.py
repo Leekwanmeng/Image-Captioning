@@ -4,6 +4,9 @@ import torch.nn.functional as F
 import torchvision.models as models
 from torch.nn.utils.rnn import pack_padded_sequence
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
 class EncoderCNN(nn.Module):
     def __init__(self, embed_size):
         """Load the pretrained ResNet-152 and replace top fc layer."""
@@ -224,7 +227,9 @@ class DecoderWithAttention(nn.Module):
         num_pixels = encoder_out.size(1)
 
         # Sort input data by decreasing lengths; why? apparent below
-        caption_lengths, sort_ind = caption_lengths.squeeze(1).sort(dim=0, descending=True)
+        caption_lengths = torch.LongTensor(caption_lengths)
+#        print(caption_lengths)
+        caption_lengths, sort_ind = caption_lengths.sort(dim=0, descending=True)
         encoder_out = encoder_out[sort_ind]
         encoded_captions = encoded_captions[sort_ind]
 
