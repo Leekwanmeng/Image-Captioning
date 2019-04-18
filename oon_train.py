@@ -64,6 +64,8 @@ def main():
                         help='decoder learning rate (default: 0.04)')
     parser.add_argument('--num_workers', type=int, default=2,
                         help='Number of workers for dataloader')
+    parser.add_argument('--crop_size', type=int, default=224,
+                        help='size for randomly cropping images')
 
     parser.add_argument('--embed-dim', type=int, default=32, metavar='EMB',
                         help='embbed dim (default: 32)')
@@ -96,6 +98,7 @@ def main():
     device = torch.device("cuda" if use_cuda else "cpu")
 
     transform = transforms.Compose([ 
+        transforms.RandomCrop(args.crop_size),
         transforms.RandomHorizontalFlip(), 
         transforms.ToTensor(), 
         transforms.Normalize((0.485, 0.456, 0.406), 
