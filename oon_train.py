@@ -26,7 +26,6 @@ def train(args, train_loader, device, encoder, decoder, criterion, encoder_optim
 
         encoder_out = encoder(img)
         
-        #TODO
         output, caps_sorted, decode_lengths, alphas, sort_ind = decoder(encoder_out, target, lengths)
         target = caps_sorted[:, 1:]
 
@@ -46,7 +45,7 @@ def train(args, train_loader, device, encoder, decoder, criterion, encoder_optim
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
             epoch, batch_idx * args.batch_size, len(train_loader.dataset),
             100. * batch_idx / len(train_loader), loss.item()))
-        print('\nAverage train loss: {:.6f}'.format(loss_meter.avg))
+    print('\nAverage train loss: {:.6f}'.format(loss_meter.avg))
     return loss_meter.avg
 
 #TODO
@@ -65,6 +64,8 @@ def main():
                         help='decoder learning rate (default: 0.04)')
     parser.add_argument('--num_workers', type=int, default=2,
                         help='Number of workers for dataloader')
+    parser.add_argument('--crop_size', type=int, default=224,
+                        help='size for randomly cropping images')
 
     parser.add_argument('--embed-dim', type=int, default=32, metavar='EMB',
                         help='embbed dim (default: 32)')
@@ -97,6 +98,7 @@ def main():
     device = torch.device("cuda" if use_cuda else "cpu")
 
     transform = transforms.Compose([ 
+        transforms.RandomCrop(args.crop_size),
         transforms.RandomHorizontalFlip(), 
         transforms.ToTensor(), 
         transforms.Normalize((0.485, 0.456, 0.406), 
