@@ -113,6 +113,8 @@ def main():
                         help='embbed dim (default: 32)')
     parser.add_argument('--hidden-dim', type=int, default=512, metavar='HD',
                         help='hidden dim (default: 512)')
+    parser.add_argument('--attention-dim', type=int, default=512, metavar='HD',
+                        help='attention dim (default: 512)')
     parser.add_argument('--lstm-layers', type=int, default=1, metavar='L',
                         help='num of lstm layers (default: 1)')
     
@@ -156,8 +158,8 @@ def main():
     val_annotations = os.path.join(args.caption_dir , "captions_{}.json".format(os.path.basename(args.val_dir))) 
     val_loader = get_loader(args.val_dir, val_annotations, vocab, transform, args.batch_size, shuffle=True, num_workers=args.num_workers)
 
-    encoder = Encoder(args.embed_dim).to(device)
-    decoder = DecoderWithAttention(512, args.embed_dim, args.hidden_dim, len(vocab)).to(device)
+    encoder = Encoder().to(device)
+    decoder = DecoderWithAttention(args.attention_dim, args.embed_dim, args.hidden_dim, len(vocab)).to(device)
 
     loss_fn = nn.CrossEntropyLoss()
     encoder_optim = torch.optim.Adam(params=[p for p in encoder.parameters() if p.requires_grad], lr=args.encoder_lr)
