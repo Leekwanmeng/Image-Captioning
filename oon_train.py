@@ -30,8 +30,8 @@ def train(args, train_loader, device, encoder, decoder, criterion, encoder_optim
         output, caps_sorted, decode_lengths, alphas, sort_ind = decoder(encoder_out, target, lengths)
         target = caps_sorted[:, 1:]
 
-        output, _ = pack_padded_sequence(outputs, decode_lengths, batch_first=True)
-        target, _ = pack_padded_sequence(targets, decode_lengths, batch_first=True)
+        output, _ = pack_padded_sequence(output, decode_lengths, batch_first=True)
+        target, _ = pack_padded_sequence(target, decode_lengths, batch_first=True)
 
         loss = criterion(output, target)
 
@@ -94,7 +94,7 @@ def main():
     args = parser.parse_args()
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     torch.manual_seed(args.seed)
-    device = torch.device("cuda:1" if use_cuda else "cpu")
+    device = torch.device("cuda" if use_cuda else "cpu")
 
     transform = transforms.Compose([ 
         transforms.RandomHorizontalFlip(), 
@@ -112,8 +112,8 @@ def main():
     val_annotations = os.path.join(args.caption_dir , "captions_{}.json".format(os.path.basename(args.val_dir))) 
     val_loader = get_loader(args.val_dir, val_annotations, vocab, transform, args.batch_size, shuffle=True, num_workers=args.num_workers)
 
-    encoder = Encoder(args.embed_size).to(device)
-    decoder = DecoderWithAttention(512, args.embed_size, args.hidden_dim, len(vocab)).to(device)
+    encoder = Encoder(args.embed_dim).to(device)
+    decoder = DecoderWithAttention(512, args.embed_dim, args.hidden_dim, len(vocab)).to(device)
 
     loss_fn = nn.CrossEntropyLoss()
     encoder_optim = torch.optim.Adam(params=[p for p in encoder.parameters() if p.requires_grad], lr=args.encoder_lr)
