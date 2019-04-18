@@ -30,8 +30,8 @@ def train(args, train_loader, device, encoder, decoder, criterion, encoder_optim
         output, caps_sorted, decode_lengths, alphas, sort_ind = decoder(encoder_out, target, lengths)
         target = caps_sorted[:, 1:]
 
-        output, _ = pack_padded_sequence(outputs, decode_lengths, batch_first=True)
-        target, _ = pack_padded_sequence(targets, decode_lengths, batch_first=True)
+        output, _ = pack_padded_sequence(output, decode_lengths, batch_first=True)
+        target, _ = pack_padded_sequence(target, decode_lengths, batch_first=True)
 
         loss = criterion(output, target)
 
@@ -47,7 +47,7 @@ def train(args, train_loader, device, encoder, decoder, criterion, encoder_optim
             epoch, batch_idx * args.batch_size, len(train_loader.dataset),
             100. * batch_idx / len(train_loader), loss.item()))
         print('\nAverage train loss: {:.6f}'.format(loss_meter.avg))
-    return
+    return loss_meter.avg
 
 #TODO
 def validate(args, val_loader, device, encoder, decoder, criterion):
@@ -55,8 +55,8 @@ def validate(args, val_loader, device, encoder, decoder, criterion):
 
 def main():
     parser = argparse.ArgumentParser(description='Image Caption Attn Model')
-    parser.add_argument('--batch-size', type=int, default=1, metavar='N',
-                        help='input batch size for training (default: 1)')
+    parser.add_argument('--batch-size', type=int, default=8, metavar='N',
+                        help='input batch size for training (default: 8)')
     parser.add_argument('--epochs', type=int, default=15, metavar='N',
                         help='number of epochs to train (default: 15)')
     parser.add_argument('--encoder-lr', type=float, default=0.01, metavar='LR',
@@ -66,8 +66,8 @@ def main():
     parser.add_argument('--num_workers', type=int, default=2,
                         help='Number of workers for dataloader')
 
-    parser.add_argument('--embed-dim', type=int, default=256, metavar='EMB',
-                        help='embbed dim (default: 256)')
+    parser.add_argument('--embed-dim', type=int, default=32, metavar='EMB',
+                        help='embbed dim (default: 32)')
     parser.add_argument('--hidden-dim', type=int, default=512, metavar='HD',
                         help='hidden dim (default: 512)')
     parser.add_argument('--lstm-layers', type=int, default=2, metavar='L',
@@ -94,7 +94,7 @@ def main():
     args = parser.parse_args()
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     torch.manual_seed(args.seed)
-    device = torch.device("cuda:1" if use_cuda else "cpu")
+    device = torch.device("cuda" if use_cuda else "cpu")
 
     transform = transforms.Compose([ 
         transforms.RandomHorizontalFlip(), 
@@ -112,8 +112,8 @@ def main():
     val_annotations = os.path.join(args.caption_dir , "captions_{}.json".format(os.path.basename(args.val_dir))) 
     val_loader = get_loader(args.val_dir, val_annotations, vocab, transform, args.batch_size, shuffle=True, num_workers=args.num_workers)
 
-    encoder = Encoder(args.embed_size).to(device)
-    decoder = DecoderWithAttention(512, args.embed_size, args.hidden_dim, len(vocab)).to(device)
+    encoder = Encoder(args.embed_dim).to(device)
+    decoder = DecoderWithAttention(512, args.embed_dim, args.hidden_dim, len(vocab)).to(device)
 
     loss_fn = nn.CrossEntropyLoss()
     encoder_optim = torch.optim.Adam(params=[p for p in encoder.parameters() if p.requires_grad], lr=args.encoder_lr)
