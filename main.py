@@ -13,7 +13,7 @@ from torchvision import transforms
 
 
 # Device configuration
-device = torch.device('cuda:4' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def main(args):
     # Create model directory
@@ -36,12 +36,12 @@ def main(args):
     data_loader = get_loader(args.image_dir, args.caption_path, vocab, 
                              transform, args.batch_size,
                              shuffle=True, num_workers=args.num_workers) 
-
+	
     # # Build the models
     # encoder = EncoderCNN(args.embed_size).to(device)
     # decoder = DecoderRNN(args.embed_size, args.hidden_size, len(vocab), args.num_layers).to(device)
 
-    encoder = Encoder(args.embed_size).to(device)
+    encoder = Encoder().to(device)
     decoder = DecoderWithAttention(512, args.embed_size, args.hidden_size, len(vocab)).to(device)
     
     # Loss and optimizer
