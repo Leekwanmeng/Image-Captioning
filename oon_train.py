@@ -9,66 +9,21 @@ from build_vocab import Vocabulary
 from model import Encoder, DecoderWithAttention
 from torch.nn.utils.rnn import pack_padded_sequence
 from torchvision import transforms
-from utils import AverageMeter, accuracy
+from utils import *
 import time
-
-# def train(args, train_loader, device, encoder, decoder, criterion, encoder_optimizer, decoder_optimizer, epoch):
-#     encoder.train()
-#     decoder.train()
-
-#     loss_meter = AverageMeter('Train loss', ':.4f')
-#     epoch_start = time.time()
-#     last_time = epoch_start
-
-#     for batch_idx, (img, target, lengths) in enumerate(train_loader):
-#         img = img.to(device)
-#         target = target.to(device)
-
-#         # target = pack_padded_sequence(caption, length, batch_first=True)[0]
-
-#         encoder_out = encoder(img)
-        
-#         output, caps_sorted, decode_lengths, alphas, sort_ind = decoder(encoder_out, target, lengths)
-#         target = caps_sorted[:, 1:]
-
-#         output, _ = pack_padded_sequence(output, decode_lengths, batch_first=True)
-#         target, _ = pack_padded_sequence(target, decode_lengths, batch_first=True)
-
-#         loss = criterion(output, target)
-
-#         # doubly stochastic attention regularization
-#         loss += 1. * ((1. - alphas.sum(dim=1)) ** 2).mean()
-
-#         loss_meter.update(loss)
-
-#         decoder.zero_grad()
-#         encoder.zero_grad()
-#         loss.backward()
-#         encoder_optimizer.step()
-#         decoder_optimizer.step()
-#         if batch_idx % args.log_interval == 0:
-#             time_now = time.time()
-#             time_taken = time_now - last_time
-#             last_time = time_now
-#             print('Train Epoch: {} [{}/{} ({:.0f}%)]\t Time taken: {:.0f}s\tLoss: {:.6f}'.format(
-#             epoch, batch_idx * args.batch_size, len(train_loader.dataset),
-#             100. * batch_idx / len(train_loader), time_taken, loss.item()))
-#     print('\nAverage train loss: {:.6f}\t Time taken: {:.0f}s'.format(loss_meter.avg, epoch_start - time.time()))
-#     return loss_meter.avg
 
 def train(args, train_loader, device, encoder, decoder, criterion, optimizer, epoch):
     encoder.train()
     decoder.train()
 
     loss_meter = AverageMeter('Train loss', ':.4f')
+    top5acc = AverageMeter('Top 5 Accuracy', ':.4f')
     epoch_start = time.time()
     last_time = epoch_start
 
     for batch_idx, (img, target, lengths) in enumerate(train_loader):
         img = img.to(device)
         target = target.to(device)
-
-        # target = pack_padded_sequence(caption, length, batch_first=True)[0]
 
         encoder_out = encoder(img)
         
@@ -82,21 +37,26 @@ def train(args, train_loader, device, encoder, decoder, criterion, optimizer, ep
 
         # doubly stochastic attention regularization
         loss += 1. * ((1. - alphas.sum(dim=1)) ** 2).mean()
-
         loss_meter.update(loss)
+
+        top5 = accuracy(output, target, 5)
+        top5acc.update(top5, sum(decode_lengths))   
 
         decoder.zero_grad()
         encoder.zero_grad()
         loss.backward()
+    
+        clip_gradient(optimizer, 5.)    
+
         optimizer.step()
         if batch_idx % args.log_interval == 0:
             time_now = time.time()
             time_taken = time_now - last_time
             last_time = time_now
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\t Time taken: {:.0f}s\tLoss: {:.6f}'.format(
+            print('Train Epoch: {} [{}/{} ({:.0f}%)]\t Time taken: {:.0f}s\tLoss: {:.6f}\t Top 5 accuracy: {:.2f} %'.format(
             epoch, batch_idx * args.batch_size, len(train_loader.dataset),
-            100. * batch_idx / len(train_loader), time_taken, loss.item()))
-    print('\nAverage train loss: {:.6f}\t Time taken: {:.0f}s'.format(loss_meter.avg, epoch_start - time.time()))
+            100. * batch_idx / len(train_loader), time_taken, loss.item(), top5acc.avg))
+    print('\nAverage train loss: {:.6f}\t Top 5 accuracy: {:.2f} %\t Time taken: {:.0f}s'.format(loss_meter.avg, top5acc.avg, time.time() - epoch_start))
     return loss_meter.avg
 
 def validate(args, val_loader, device, encoder, decoder, criterion):
@@ -107,9 +67,9 @@ def validate(args, val_loader, device, encoder, decoder, criterion):
     loss_meter = AverageMeter('Train loss', ':.4f')
     top5acc = AverageMeter('Top 5 Accuracy', ':.4f')
     print("Evaluating model...")
-    start_epoch = time.time()
+    epoch_start = time.time()
     with torch.no_grad():
-        for img, target, lengths in val_loader:
+        for batch_idx, (img, target, lengths) in enumerate(val_loader):
             img = img.to(device)
             target = target.to(device)
             
@@ -127,23 +87,25 @@ def validate(args, val_loader, device, encoder, decoder, criterion):
 
             top5 = accuracy(output, target, 5)
             top5acc.update(top5, sum(decode_lengths))   
+            if batch_idx % 100 == 0:
+                print("Progress: {:.0f} %\t Time elapsed: {:.0f}s".format(100. * batch_idx / len(val_loader), time.time() - epoch_start))
 
     print(
         '\nAverage val loss: {:.6f}\t'
-        'Time taken: {:.0f}s\t'
+        'Time elapsed: {:.0f}s\t'
         'Top 5 accuracy: {:.4f} %\t'
-        .format(loss_meter.avg, epoch_start - time.time(), top5acc.avg))
+        .format(loss_meter.avg, time.time() - epoch_start, top5acc.avg))
     return loss_meter.avg, top5acc.avg
 
 def main():
     parser = argparse.ArgumentParser(description='Image Caption Attn Model')
     parser.add_argument('--batch-size', type=int, default=8, metavar='N',
                         help='input batch size for training (default: 8)')
-    parser.add_argument('--epochs', type=int, default=15, metavar='N',
-                        help='number of epochs to train (default: 15)')
+    parser.add_argument('--epochs', type=int, default=20, metavar='N',
+                        help='number of epochs to train (default: 20)')
     parser.add_argument('--encoder-lr', type=float, default=0.001, metavar='LR',
                         help='encoder learning rate (default: 0.01)')
-    parser.add_argument('--decoder-lr', type=float, default=0.004, metavar='LR',
+    parser.add_argument('--decoder-lr', type=float, default=0.001, metavar='LR',
                         help='decoder learning rate (default: 0.001)')
     parser.add_argument('--num-workers', type=int, default=2,
                         help='Number of workers for dataloader')
@@ -151,7 +113,7 @@ def main():
                         help='size for randomly cropping images')
 
     parser.add_argument('--embed-dim', type=int, default=256, metavar='EMB',
-                        help='embbed dim (default: 32)')
+                        help='embbed dim (default: 256)')
     parser.add_argument('--hidden-dim', type=int, default=512, metavar='HD',
                         help='hidden dim (default: 512)')
     parser.add_argument('--attention-dim', type=int, default=512, metavar='HD',
@@ -163,7 +125,7 @@ def main():
                         help='disables CUDA training')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--log-interval', type=int, default=10, metavar='N',
+    parser.add_argument('--log-interval', type=int, default=30, metavar='N',
                         help='how many batches to wait before logging training status')
 
     parser.add_argument('--model-path', type=str, default='saved_models/' ,
@@ -203,24 +165,16 @@ def main():
     decoder = DecoderWithAttention(args.attention_dim, args.embed_dim, args.hidden_dim, len(vocab)).to(device)
 
     loss_fn = nn.CrossEntropyLoss()
-    # encoder_optim = torch.optim.Adam(params=[p for p in encoder.parameters() if p.requires_grad], lr=args.encoder_lr)
-    # decoder_optim = torch.optim.Adam(params=[p for p in decoder.parameters() if p.requires_grad], lr=args.decoder_lr)
 
     optimizer = torch.optim.Adam(params=[p for p in decoder.parameters() if p.requires_grad] + [p for p in encoder.parameters() if p.requires_grad], lr=args.decoder_lr)
 
-    # train_loader.dataset.ids = train_loader.dataset.ids[:100]
-    # val_loader.dataset.ids = val_loader.dataset.ids[:100]
+    # train_loader.dataset.ids = train_loader.dataset.ids[:5000]
+    # val_loader.dataset.ids = val_loader.dataset.ids[:20000]
+
+    ids = val_loader.dataset.ids
 
     for epoch in range(1, (args.epochs + 1)):
-        # train_loss = train(args = args,
-        #         train_loader=train_loader,
-        #         device = device,
-        #         encoder=encoder,
-        #         decoder=decoder,
-        #         criterion=loss_fn,
-        #         encoder_optimizer=encoder_optim,
-        #         decoder_optimizer=decoder_optim,
-        #         epoch=epoch)
+        val_loader.dataset.ids = np.random.choice(val_loader.dataset.ids, 20000, replace=False)
 
         train_loss = train(args = args,
                 train_loader=train_loader,
@@ -248,7 +202,7 @@ def main():
         }
         
         torch.save(state, filename)
-        print("saved model at {}".format(filename))
+        print("saved model at {}\n".format(filename))
 
 if __name__ == "__main__":
     main()
