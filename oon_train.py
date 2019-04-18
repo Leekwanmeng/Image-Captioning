@@ -47,7 +47,7 @@ def train(args, train_loader, device, encoder, decoder, criterion, encoder_optim
             epoch, batch_idx * args.batch_size, len(train_loader.dataset),
             100. * batch_idx / len(train_loader), loss.item()))
         print('\nAverage train loss: {:.6f}'.format(loss_meter.avg))
-    return
+    return loss_meter.avg
 
 #TODO
 def validate(args, val_loader, device, encoder, decoder, criterion):
@@ -55,8 +55,8 @@ def validate(args, val_loader, device, encoder, decoder, criterion):
 
 def main():
     parser = argparse.ArgumentParser(description='Image Caption Attn Model')
-    parser.add_argument('--batch-size', type=int, default=1, metavar='N',
-                        help='input batch size for training (default: 1)')
+    parser.add_argument('--batch-size', type=int, default=8, metavar='N',
+                        help='input batch size for training (default: 8)')
     parser.add_argument('--epochs', type=int, default=15, metavar='N',
                         help='number of epochs to train (default: 15)')
     parser.add_argument('--encoder-lr', type=float, default=0.01, metavar='LR',
@@ -66,8 +66,8 @@ def main():
     parser.add_argument('--num_workers', type=int, default=2,
                         help='Number of workers for dataloader')
 
-    parser.add_argument('--embed-dim', type=int, default=256, metavar='EMB',
-                        help='embbed dim (default: 256)')
+    parser.add_argument('--embed-dim', type=int, default=32, metavar='EMB',
+                        help='embbed dim (default: 32)')
     parser.add_argument('--hidden-dim', type=int, default=512, metavar='HD',
                         help='hidden dim (default: 512)')
     parser.add_argument('--lstm-layers', type=int, default=2, metavar='L',
