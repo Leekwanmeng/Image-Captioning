@@ -6,7 +6,7 @@ import os
 import pickle
 from data_loader import get_loader 
 from build_vocab import Vocabulary
-from model import EncoderCNN, DecoderRNN
+from model import Encoder, DecoderWithAttention
 from torch.nn.utils.rnn import pack_padded_sequence
 from torchvision import transforms
 from utils import AverageMeter
@@ -25,7 +25,12 @@ def train(args, train_loader, device, encoder, decoder, criterion, encoder_optim
         # target = pack_padded_sequence(caption, length, batch_first=True)[0]
 
         encoder_out = encoder(img)
-        output = decoder(encoder_out, target)
+        
+        #TODO
+        output, caps_sorted, decode_lengths, alphas, sort_ind = decoder(features, captions, lengths)
+        targets = caps_sorted[:, 1:]
+
+
         loss = criterion(output, target)
 
         loss_meter.update(loss)
@@ -59,8 +64,10 @@ def main():
     parser.add_argument('--num_workers', type=int, default=2,
                         help='Number of workers for dataloader')
 
-    parser.add_argument('--hidden-dim', type=int, default=200, metavar='HD',
-                        help='hidden dim (default: 200)')
+    parser.add_argument('--embed-dim', type=int, default=256, metavar='EMB',
+                        help='embbed dim (default: 256)')
+    parser.add_argument('--hidden-dim', type=int, default=512, metavar='HD',
+                        help='hidden dim (default: 512)')
     parser.add_argument('--lstm-layers', type=int, default=2, metavar='L',
                         help='num of lstm layers (default: 2)')
     
@@ -85,7 +92,7 @@ def main():
     args = parser.parse_args()
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     torch.manual_seed(args.seed)
-    device = torch.device("cuda" if use_cuda else "cpu")
+    device = torch.device("cuda:4" if use_cuda else "cpu")
 
     transform = transforms.Compose([ 
         transforms.RandomHorizontalFlip(), 
@@ -93,8 +100,9 @@ def main():
         transforms.Normalize((0.485, 0.456, 0.406), 
                              (0.229, 0.224, 0.225))])
 
-    #TODO
-    vocab = ''
+    # Load vocabulary wrapper
+    with open(args.vocab_path, 'rb') as f:
+        vocab = pickle.load(f)
 
     train_annotations = os.path.join(args.caption_dir , "captions_{}.json".format(os.path.basename(args.train_dir))) 
     train_loader = get_loader(args.train_dir, train_annotations, vocab, transform, args.batch_size, shuffle=True, num_workers=args.num_workers)
@@ -102,13 +110,12 @@ def main():
     val_annotations = os.path.join(args.caption_dir , "captions_{}.json".format(os.path.basename(args.val_dir))) 
     val_loader = get_loader(args.val_dir, val_annotations, vocab, transform, args.batch_size, shuffle=True, num_workers=args.num_workers)
 
-    #TODO
-    encoder = object.to(device)
-    decoder = object.to(device)
+    encoder = Encoder(args.embed_size).to(device)
+    decoder = DecoderWithAttention(512, args.embed_size, args.hidden_dim, len(vocab)).to(device)
 
     loss_fn = nn.CrossEntropyLoss()
-    encoder_optim = torch.optim.Adam(params=encoder.parameters(), lr=args.encoder_lr)
-    decoder_optim = torch.optim.Adam(params=decoder.parameters(), lr=args.decoder_lr)
+    encoder_optim = torch.optim.Adam(params=[p for p in encoder.parameters() if p.requires_grad], lr=args.encoder_lr)
+    decoder_optim = torch.optim.Adam(params=[p for p in decoder.parameters() if p.requires_grad], lr=args.decoder_lr)
 
     for epoch in range(1, (args.epochs + 1)):
         train_loss = train(args = args,
