@@ -7,7 +7,6 @@ import pickle
 from data_loader import get_loader 
 from build_vocab import Vocabulary
 from model import EncoderCNN, DecoderRNN
-from model import Encoder, DecoderWithAttention
 from torch.nn.utils.rnn import pack_padded_sequence
 from torchvision import transforms
 
@@ -37,19 +36,14 @@ def main(args):
                              transform, args.batch_size,
                              shuffle=True, num_workers=args.num_workers) 
 
-    # # Build the models
-    # encoder = EncoderCNN(args.embed_size).to(device)
-    # decoder = DecoderRNN(args.embed_size, args.hidden_size, len(vocab), args.num_layers).to(device)
-
-    encoder = Encoder(args.embed_size).to(device)
-    decoder = DecoderWithAttention(512, args.embed_size, args.hidden_size, len(vocab)).to(device)
+    # Build the models
+    encoder = EncoderCNN(args.embed_size).to(device)
+    decoder = DecoderRNN(args.embed_size, args.hidden_size, len(vocab), args.num_layers).to(device)
     
     # Loss and optimizer
     criterion = nn.CrossEntropyLoss()
-    # params = list(decoder.parameters()) + list(encoder.linear.parameters()) + list(encoder.bn.parameters())
-    optimizer = torch.optim.Adam(
-        params=[p for p in decoder.parameters() if p.requires_grad] + [p for p in encoder.parameters() if p.requires_grad], 
-        lr=args.learning_rate)
+    params = list(decoder.parameters()) + list(encoder.linear.parameters()) + list(encoder.bn.parameters())
+    optimizer = torch.optim.Adam(params, lr=args.learning_rate)
     
     # Train the models
     total_step = len(data_loader)
@@ -59,16 +53,11 @@ def main(args):
             # Set mini-batch dataset
             images = images.to(device)
             captions = captions.to(device)
-            # targets = pack_padded_sequence(captions, lengths, batch_first=True)[0]
+            targets = pack_padded_sequence(captions, lengths, batch_first=True)[0]
             
             # Forward, backward and optimize
             features = encoder(images)
-            # outputs = decoder(features, captions, lengths)
-            outputs, caps_sorted, decode_lengths, alphas, sort_ind = decoder(features, captions, lengths)
-            targets = caps_sorted[:, 1:]
-            outputs, _ = pack_padded_sequence(outputs, decode_lengths, batch_first=True)
-            targets, _ = pack_padded_sequence(targets, decode_lengths, batch_first=True)
-
+            outputs = decoder(features, captions, lengths)
             loss = criterion(outputs, targets)
             decoder.zero_grad()
             encoder.zero_grad()
