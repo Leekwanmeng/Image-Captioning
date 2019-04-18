@@ -26,7 +26,6 @@ def train(args, train_loader, device, encoder, decoder, criterion, encoder_optim
 
         encoder_out = encoder(img)
         
-        #TODO
         output, caps_sorted, decode_lengths, alphas, sort_ind = decoder(encoder_out, target, lengths)
         target = caps_sorted[:, 1:]
 
@@ -46,7 +45,7 @@ def train(args, train_loader, device, encoder, decoder, criterion, encoder_optim
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
             epoch, batch_idx * args.batch_size, len(train_loader.dataset),
             100. * batch_idx / len(train_loader), loss.item()))
-        print('\nAverage train loss: {:.6f}'.format(loss_meter.avg))
+    print('\nAverage train loss: {:.6f}'.format(loss_meter.avg))
     return loss_meter.avg
 
 #TODO
