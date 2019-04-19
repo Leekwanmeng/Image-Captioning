@@ -109,10 +109,6 @@ venv.bak/
 # Data
 data/
 zip_data/
-<<<<<<< HEAD
 sample/
 models/
-=======
-models/
-sample/
->>>>>>> 2c420f103aecc1b47e6e95ca934e4ae9d967464a
+

@@ -1,8 +1,8 @@
 from sampler import Sampler
-from build_vocab import Vocabulary
+from utils import Vocabulary
 
 
-model = Sampler('./models/checkpoint_1_7142.pt', './data/vocab.pkl')
+model = Sampler('./models/checkpoint_1_7149.pt', './data/vocab.pkl')
 
 # model.decoder.max_seg_length = 20
 

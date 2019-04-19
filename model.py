@@ -72,7 +72,7 @@ class DecoderWithAttention(nn.Module):
         self.fc.bias.data.fill_(0)
         self.fc.weight.data.uniform_(-0.1, 0.1)
 
-    def init_hidden(self, encoder_out):
+    def init_hidden_state(self, encoder_out):
         enc_mean = encoder_out.mean(dim=1)
         h = self.init_h(enc_mean)
         c = self.init_c(enc_mean)
