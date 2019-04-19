@@ -27,11 +27,11 @@ def train(args, train_loader, device, encoder, decoder, criterion, optimizer, ep
 
         encoder_out = encoder(img)
         
-        output, caps_sorted, decode_lengths, alphas, sort_ind = decoder(encoder_out, target, lengths)
+        output, caps_sorted, dec_len, alphas, sort_ind = decoder(encoder_out, target, lengths)
         target = caps_sorted[:, 1:]
 
-        output, _ = pack_padded_sequence(output, decode_lengths, batch_first=True)
-        target, _ = pack_padded_sequence(target, decode_lengths, batch_first=True)
+        output, _ = pack_padded_sequence(output, dec_len, batch_first=True)
+        target, _ = pack_padded_sequence(target, dec_len, batch_first=True)
 
         loss = criterion(output, target)
 
@@ -40,7 +40,7 @@ def train(args, train_loader, device, encoder, decoder, criterion, optimizer, ep
         loss_meter.update(loss)
 
         top5 = accuracy(output, target, 5)
-        top5acc.update(top5, sum(decode_lengths))   
+        top5acc.update(top5, sum(dec_len))   
 
         decoder.zero_grad()
         encoder.zero_grad()
@@ -75,10 +75,10 @@ def validate(args, val_loader, device, encoder, decoder, criterion):
             
             encoder_out = encoder(img)
             
-            output, caps_sorted, decode_lengths, alphas, sort_ind = decoder(encoder_out, target, lengths)
+            output, caps_sorted, dec_len, alphas, sort_ind = decoder(encoder_out, target, lengths)
             target = caps_sorted[:, 1:]
-            output, _ = pack_padded_sequence(output, decode_lengths, batch_first=True)
-            target, _ = pack_padded_sequence(target, decode_lengths, batch_first=True)
+            output, _ = pack_padded_sequence(output, dec_len, batch_first=True)
+            target, _ = pack_padded_sequence(target, dec_len, batch_first=True)
 
             loss = criterion(output, target)
             # doubly stochastic attention regularization
@@ -86,7 +86,7 @@ def validate(args, val_loader, device, encoder, decoder, criterion):
             loss_meter.update(loss)
 
             top5 = accuracy(output, target, 5)
-            top5acc.update(top5, sum(decode_lengths))   
+            top5acc.update(top5, sum(dec_len))   
             if batch_idx % 100 == 0:
                 print("Progress: {:.0f} %\t Time elapsed: {:.0f}s".format(100. * batch_idx / len(val_loader), time.time() - epoch_start))
 
@@ -114,8 +114,10 @@ def main():
 
     parser.add_argument('--embed-dim', type=int, default=256, metavar='EMB',
                         help='embbed dim (default: 256)')
-    parser.add_argument('--hidden-dim', type=int, default=512, metavar='HD',
-                        help='hidden dim (default: 512)')
+    parser.add_argument('--decoder-dim', type=int, default=512, metavar='HD',
+                        help='decoder dim (default: 512)')
+    parser.add_argument('--encoder-dim', type=int, default=512, metavar='HD',
+                        help='encoder dim (default: 512)')
     parser.add_argument('--attention-dim', type=int, default=512, metavar='HD',
                         help='attention dim (default: 512)')
     parser.add_argument('--lstm-layers', type=int, default=1, metavar='L',
@@ -161,8 +163,8 @@ def main():
     val_annotations = os.path.join(args.caption_dir , "captions_{}.json".format(os.path.basename(args.val_dir))) 
     val_loader = get_loader(args.val_dir, val_annotations, vocab, transform, args.batch_size, shuffle=True, num_workers=args.num_workers)
 
-    encoder = Encoder().to(device)
-    decoder = DecoderWithAttention(args.attention_dim, args.embed_dim, args.hidden_dim, len(vocab)).to(device)
+    encoder = Encoder(args.encoder_dim).to(device)
+    decoder = DecoderWithAttention(args.attention_dim, args.embed_dim, args.decoder_dim, args.encoder_dim, len(vocab)).to(device)
 
     loss_fn = nn.CrossEntropyLoss()
 
