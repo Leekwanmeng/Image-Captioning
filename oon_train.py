@@ -98,7 +98,7 @@ def main():
     device = torch.device("cuda" if use_cuda else "cpu")
 
     transform = transforms.Compose([ 
-        transforms.RandomCrop(args.crop_size),
+        transforms.RandomResizedCrop(args.crop_size),
         transforms.RandomHorizontalFlip(), 
         transforms.ToTensor(), 
         transforms.Normalize((0.485, 0.456, 0.406), 
@@ -110,6 +110,9 @@ def main():
 
     train_annotations = os.path.join(args.caption_dir , "captions_{}.json".format(os.path.basename(args.train_dir))) 
     train_loader = get_loader(args.train_dir, train_annotations, vocab, transform, args.batch_size, shuffle=True, num_workers=args.num_workers)
+
+    for i in train_annotations:
+        print(i)
 
     val_annotations = os.path.join(args.caption_dir , "captions_{}.json".format(os.path.basename(args.val_dir))) 
     val_loader = get_loader(args.val_dir, val_annotations, vocab, transform, args.batch_size, shuffle=True, num_workers=args.num_workers)
