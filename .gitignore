@@ -109,4 +109,6 @@ venv.bak/
 # Data
 data/
 zip_data/
+sample/
 models/
+
