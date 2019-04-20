@@ -1,0 +1,38 @@
+{% extends "bootstrap/base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}
+<title>Image-Captioning-Project</title>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="jumbotron">
+        <h1>Image Captioning <br><small>for deep learning course</small></h1>
+    </div>
+    <div class="col-lg-4 col-lg-offset-4">
+        <h4>Upload an image to see predicted caption</h4>
+        <form class="form form-horizontal" role="form" action="/upload/" method="POST" enctype="multipart/form-data">
+            {{ form.hidden_tag() }}
+            {{ form.upload }}
+            {% for error in form.upload.errors %}
+                <span class="help-inline" style="color: red;">{{ error }}</span>
+            {% endfor %}
+            {{ form.submit }}
+        </form>
+        {% if file_url %}
+        <br>
+        <img src="{{ file_url }}" style="width:600px;height:450px;">
+        {% endif %}
+        {% if caption %}
+        <br>
+        <br>
+        <p>{{ caption }}</p>
+        {% endif %}
+        {% if attention %}
+        <br>
+        <img src="{{ attention }}">
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
