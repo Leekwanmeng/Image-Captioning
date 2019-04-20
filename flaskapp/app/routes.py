@@ -18,8 +18,9 @@ import time
 import sys
 
 sys.path.append('../')
-from test_sampler_mok import model
 
+#NEED TO FIX THIS
+from test_sampler_mok import model
 
 photos = UploadSet('photos', IMAGES)
 configure_uploads(app, photos)
@@ -55,7 +56,7 @@ def index():
     )
 
 def get_caption_and_masked_images(filename):
-    sentence, seq, alphas, idx2word = model.caption_image_beam_search(filename)
+    sentence, seq, alphas, idx2word = model.beam_search(filename)
     alphas = torch.FloatTensor(alphas)
     visualize_att(filename, seq, alphas, idx2word)
     return sentence
