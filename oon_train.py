@@ -140,6 +140,7 @@ def main():
                         help='directory for val images')
     parser.add_argument('--caption-dir', type=str, default='data/annotations/',
                         help='dir for annotation json file')
+    parser.add_argument('--checkpoint-path', type=str, default=None)
 
     args = parser.parse_args()
     use_cuda = not args.no_cuda and torch.cuda.is_available()
@@ -165,6 +166,13 @@ def main():
 
     encoder = Encoder(args.encoder_dim).to(device)
     decoder = DecoderWithAttention(args.attention_dim, args.embed_dim, args.decoder_dim, args.encoder_dim, len(vocab)).to(device)
+
+    if args.checkpoint_path is not None:
+        print('Loading from {}'.format(args.checkpoint_path))
+        state = torch.load(args.checkpoint_path)
+        encoder.load_state_dict(state['encoder'].state_dict())
+        decoder.load_state_dict(state['decoder'].state_dict())
+
 
     loss_fn = nn.CrossEntropyLoss()
 
