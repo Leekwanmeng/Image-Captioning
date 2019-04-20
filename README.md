@@ -3,8 +3,9 @@
 1. Clone this repository
 
 2. Download and extract MSCOCO14 Dataset with annotations
-```chmod +x download.sh```
-```./download.sh```
+```chmod +x download.sh
+./download.sh
+```
 
 3. Install pytorch from https://pytorch.org/
 
@@ -13,11 +14,13 @@
 
 5. Install COCO Python API
 
-```git clone https://github.com/pdollar/coco.git```
-```cd coco/PythonAPI/```
-```make```
-```python setup.py build```
-```python setup.py install```
+```
+git clone https://github.com/pdollar/coco.git
+cd coco/PythonAPI/
+make
+python setup.py build
+python setup.py install
+```
 
 6. Build vocab
 
