@@ -1,5 +1,7 @@
 # Image-Captioning
 
+##Setup
+
 1. Clone this repository
 
 2. Download and extract MSCOCO14 Dataset with annotations
