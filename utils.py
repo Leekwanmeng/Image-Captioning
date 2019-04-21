@@ -1,3 +1,5 @@
+import os
+
 class Vocabulary(object):
     """Simple vocabulary wrapper."""
     def __init__(self):
@@ -63,3 +65,7 @@ def accuracy(scores, targets, k):
     correct = ind.eq(targets.view(-1, 1).expand_as(ind))
     correct_total = correct.view(-1).float().sum()  # 0D tensor
     return correct_total.item() * (100.0 / batch_size)
+
+def get_saved_model(model_checkpoint):
+    dirname = os.path.dirname(__file__)
+    return os.path.join(dirname, 'models', model_checkpoint)

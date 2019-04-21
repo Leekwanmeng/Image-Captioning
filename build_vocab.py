@@ -59,6 +59,13 @@ def main(args):
     vocab_path = args.vocab_path
     with open(vocab_path, 'wb') as f:
         pickle.dump(vocab, f)
+    # save the dicts in vocab object as json file also for use in GUI
+    vocab_idx2word_json = json.dumps(vocab.idx2word)
+    vocab_word2idx_json = json.dumps(vocab.word2idx)
+    with open("./data/vocab_idx2word.json", "w") as f:
+        f.write(vocab_idx2word_json)
+    with open("./data/vocab_word2idx.json", "w") as f:
+        f.write(vocab_word2idx_json)
     print("Total vocabulary size: {}".format(len(vocab)))
     print("Saved the vocabulary wrapper to '{}'".format(vocab_path))
 
