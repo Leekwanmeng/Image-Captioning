@@ -5,11 +5,10 @@ from PIL import Image
 import torch.nn.functional as F
 
 class Sampler(object):
-    def __init__(self, state, vocab_path, transform = None):
+    def __init__(self, state, vocab, transform = None):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         state = torch.load(state)
-        with open(vocab_path, 'rb') as f:
-            self.vocab = pickle.load(f)
+        self.vocab = vocab
 
         self.encoder = state['encoder'].to(self.device)
         self.decoder = state['decoder'].to(self.device)
@@ -25,7 +24,6 @@ class Sampler(object):
                 transforms.ToTensor(), 
                 transforms.Normalize((0.485, 0.456, 0.406), 
                                     (0.229, 0.224, 0.225))])
-
 
     def sample(self, img_path):
         image = Image.open(img_path)
@@ -50,7 +48,6 @@ class Sampler(object):
         sentence = ' '.join(sampled_caption)
         
         return base_image, sentence
-
 
     def beam_search(self, img_path, k=3):
         sequences = [[[], 1.0]]
@@ -149,4 +146,3 @@ class Sampler(object):
             image = self.transform(image).unsqueeze(0)
         image = image.to(self.device)
         return image
-

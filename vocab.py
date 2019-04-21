@@ -1,6 +1,4 @@
-from sampler_mok import Sampler
 import os
-import sys
 import json
 
 # For recreating a vocab class from scratch because there's an issue with 
@@ -31,11 +29,4 @@ with open(os.path.join(dirname, 'data', 'vocab_idx2word.json'), 'r') as f:
     vocab_idx2word = json.load(f)
 with open(os.path.join(dirname, 'data', 'vocab_word2idx.json'), 'r') as f:
     vocab_word2idx = json.load(f)
-vocab = Vocabulary(vocab_word2idx, vocab_idx2word)
-model = Sampler(os.path.join(dirname, 'models', 'checkpoint_1_7142.pt'), vocab)
-
-if __name__ == "__main__":
-    # Test sampling
-    sentence, _ = model.caption_image_beam_search('./sample/sample_img.jpg')
-    print(sentence)
-
+vocabulary = Vocabulary(vocab_word2idx, vocab_idx2word)

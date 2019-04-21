@@ -20,7 +20,9 @@ import sys
 sys.path.append('../')
 
 #NEED TO FIX THIS
-from test_sampler_mok import model
+from sampler import Sampler
+from vocab import vocabulary as vocab, vocab_idx2word
+from utils import get_saved_model
 
 photos = UploadSet('photos', IMAGES)
 configure_uploads(app, photos)
@@ -38,7 +40,7 @@ def index():
             os.remove(file_path)
         filename = photos.save(form.upload.data, name="uploaded_image.jpg")
         file_url = photos.url(filename) + f"?{time.time()}"
-        caption = get_caption_and_masked_images('uploads/' + filename)
+        caption = get_caption_and_attention_plot('uploads/' + filename)
         if os.path.exists(os.path.join("uploads", "attention_plot.jpg")):
             attention_path = photos.url("attention_plot.jpg") + f"?{time.time()}"
         else:
@@ -55,11 +57,20 @@ def index():
         attention=attention_path
     )
 
-def get_caption_and_masked_images(filename):
-    sentence, seq, alphas, idx2word = model.beam_search(filename)
+def get_caption_and_attention_plot(filename):
+    caption, seq, alphas = build_caption_from_sampler(filename)
     alphas = torch.FloatTensor(alphas)
-    visualize_att(filename, seq, alphas, idx2word)
-    return sentence
+    visualize_att(filename, seq, alphas, vocab_idx2word)
+    return caption
+
+def build_caption_from_sampler(filename):
+    saved_model = get_saved_model("checkpoint_2_7369.pt")
+    model = Sampler(saved_model, vocab)
+    seq, alpha = model.beam_search(filename)
+    caption = ""
+    for i in seq[1:-1]:
+        caption += " " + vocab_idx2word[str(i)]
+    return caption, seq, alpha
 
 def visualize_att(image_path, seq, alphas, rev_word_map, smooth=True):
     """

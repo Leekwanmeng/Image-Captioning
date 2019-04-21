@@ -42,10 +42,11 @@ python setup.py install
 
 ## Running the GUI
 
-TODO
-
-1. To start the GUI interface, `python3 ./app/main.py`
-2. To predict a sample image, you can use the `sample_image.jpg` provided.
+1. Install app package requirements `pip install -r app_requirements.txt`
+2. To start the GUI interface, cd into flaskapp and run `flask run`
+3. To predict a sample image, you can use the `sample_image.jpg` provided.
+4. The uploaded image along with its predicted caption and attention plot will be shown.
 
 ## Implementation Details
 Refer to report.pdf for an explanation of the code and implementation.
+

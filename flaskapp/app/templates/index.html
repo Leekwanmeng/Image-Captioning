@@ -10,7 +10,7 @@
     <div class="jumbotron">
         <h1>Image Captioning <br><small>for deep learning course</small></h1>
     </div>
-    <div class="col-lg-4 col-lg-offset-4">
+    <div class="col-lg-4 col-lg-offset-3">
         <h4>Upload an image to see predicted caption</h4>
         <form class="form form-horizontal" role="form" action="/upload/" method="POST" enctype="multipart/form-data">
             {{ form.hidden_tag() }}
@@ -30,7 +30,6 @@
         <p>{{ caption }}</p>
         {% endif %}
         {% if attention %}
-        <br>
         <img src="{{ attention }}">
         {% endif %}
     </div>
