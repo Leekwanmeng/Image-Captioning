@@ -10,7 +10,6 @@ import matplotlib.cm as cm
 import skimage.transform
 
 from app import app
-from app.settings import MODELS_FOLDER, DATA_FOLDER
 from app.forms import ImageForm
 
 import os
