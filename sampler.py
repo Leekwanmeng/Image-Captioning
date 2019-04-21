@@ -77,7 +77,7 @@ class Sampler(object):
 
         # Begin decoding
         step = 1
-        h, c = self.decoder.init_hidden_state(encoder_out)
+        h, c = self.decoder.init_hidden(encoder_out)
 
         while True:
             embeddings = self.decoder.embedding(step_k_prev_words).squeeze(1)
@@ -134,7 +134,11 @@ class Sampler(object):
         seq = complete_sequence[max_idx]
         alphas = complete_sequence_alpha[max_idx]
 
-        return seq, alphas
+        sentence = ""
+        for i in seq[1:-1]:
+            sentence += " " + self.vocab.idx2word[i]
+
+        return sentence, seq, alphas
 
 
     def read_image(self, img_path):
