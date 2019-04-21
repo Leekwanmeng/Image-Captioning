@@ -1,6 +1,6 @@
 # Image-Captioning
 
-##Setup
+## Setup
 
 1. Clone this repository
 
