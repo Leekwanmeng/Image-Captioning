@@ -131,11 +131,7 @@ class Sampler(object):
         seq = complete_sequence[max_idx]
         alphas = complete_sequence_alpha[max_idx]
 
-        sentence = ""
-        for i in seq[1:-1]:
-            sentence += " " + self.vocab.idx2word[i]
-
-        return sentence, seq, alphas
+        return seq, alphas
 
 
     def read_image(self, img_path):
